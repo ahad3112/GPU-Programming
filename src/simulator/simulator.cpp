@@ -1,7 +1,6 @@
 #include<iostream>
 #include "simulator.hpp"
-
-
+#include "device.hpp"
 
 void nbody::startSimulation(){
   std::cout<<"Simulation started..."<<std::endl;
@@ -9,5 +8,5 @@ void nbody::startSimulation(){
   Particle p = Particle();
 
   // Call cuda for initialization and execution of the kernel
-
+  startComputation();
 }
