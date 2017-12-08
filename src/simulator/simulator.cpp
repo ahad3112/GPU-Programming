@@ -1,4 +1,5 @@
 #include<iostream>
+#include <string>
 #include "common.hpp"
 #include "simulator.hpp"
 #include "particle.hpp"
@@ -10,6 +11,7 @@ enum class CollidorEnum { ONE, TWO };
 * Forward method decleration
 */
 void init(Particle* h_particles);
+void printParticles(Particle* h_particles);
 // This method initialied the list of particle
 
 /*
@@ -22,7 +24,7 @@ void nbody::startSimulation(){
 
   // Initialize particles list
   init(h_particles);
-
+  printParticles(h_particles);
   // Call cuda for initialization and execution of the kernel
   startComputation(h_particles,NUM_PARTICLES);
 
@@ -30,6 +32,21 @@ void nbody::startSimulation(){
   releaseHostMemory(h_particles);
 }
 
+// This method print the list of initialized h_particles
+void printParticles(Particle* h_particles){
+    for(int i = 0; i < NUM_PARTICLES; i++){
+
+      std::cout<<"Particle: "<<i
+              <<" -> ("<<
+              h_particles[i].position.x
+              <<" , "<<
+              h_particles[i].position.y
+              <<" , "<<
+              h_particles[i].position.z
+              <<" )"<<
+              std::endl;
+    }
+}
 
 // This methods return a random float number
 float rndFloat(){
@@ -138,17 +155,13 @@ void init(Particle* h_particles){
 
     g_radius_core_fe = g_radius_earth * std::cbrt(0.3);
 
-	// Particle* particles_impone;
-	// Particle* particles_imptwo;
-	// page-locked (pinned) memory
-	//CUDA_CHECK_RETURN(cudaHostAlloc((void**) &h_particles, NUM_PARTICLES * sizeof(Particle) , cudaHostAllocDefault));
+    int per_collidor_particles = (int) NUM_PARTICLES / 2;
+    int num_iron_particles = (int) (PERCENT_IRON * per_collidor_particles);
+    int num_silica_particles = per_collidor_particles - num_iron_particles;
 
-    int num_iron_particles = (int) (PERCENT_IRON * NUM_PARTICLES);
-    int num_silica_particles = NUM_PARTICLES - num_iron_particles;
-
-    // initialize iron particle positions
+    // adding first collidor one
     float3f rho;
-    int i=0;
+    int i = 0;
 
   	for(i = 0; i< num_iron_particles; i++){
           rho = rndFloat3();
@@ -165,7 +178,7 @@ void init(Particle* h_particles){
 
       }
 
-      for(; i< NUM_PARTICLES;i++){
+      for(; i< per_collidor_particles;i++){
           rho = rndFloat3();
       		float3f position = randomShell(rho);
           position = float3f(position.x + g_center_mass_one.x,
@@ -176,5 +189,32 @@ void init(Particle* h_particles){
           h_particles[i] = Particle(position, velocity , ParticleType::SILICA);
 
       }
+
+      // adding second Collidor
+      for(; i< per_collidor_particles + num_iron_particles; i++){
+            rho = rndFloat3();
+  //          std::cout<<"rho.x<<" "<<rho.y<<" "<<rho.z"<<std::endl;
+  //          std::cout<<rho.x<<" "<<rho.y<<" "<<rho.z<<std::endl;
+            float3f position = randomSphere(rho);
+
+            position = float3f(position.x + g_center_mass_two.x,
+                                position.y + g_center_mass_two.y,
+                                position.z + g_center_mass_two.z);
+
+            float3f velocity = computeVelocity(position, CollidorEnum::TWO);
+            h_particles[i] = Particle(position , velocity , ParticleType::IRON);
+
+        }
+
+        for(; i< NUM_PARTICLES;i++){
+            rho = rndFloat3();
+            float3f position = randomShell(rho);
+            position = float3f(position.x + g_center_mass_two.x,
+                                position.y + g_center_mass_two.y,
+                                position.z + g_center_mass_two.z);
+
+            float3f velocity = computeVelocity(position, CollidorEnum::TWO);
+            h_particles[i] = Particle(position, velocity , ParticleType::SILICA);
+        }
 
 }

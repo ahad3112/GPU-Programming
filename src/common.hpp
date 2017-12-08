@@ -13,7 +13,7 @@
 #include <cmath>
 #include "mathUtil.hpp"
 
- unsigned int NUM_PARTICLES 	= 3200;							        // total no. of particles
+ unsigned int NUM_PARTICLES 	= 320;							        // total no. of particles
 
  /**
  * Some constant mathematical variables
@@ -48,10 +48,11 @@ float g_radius_core_fe;
 
 
 float3f g_center_mass_one = float3f(23925.0f,0.0f,9042.7f);
-float3f g_center_mass_two = float3f(23925.0f,0.0f,9042.7f);
+float3f g_center_mass_two = float3f(-23925.0f,0.0f,-9042.7f);
 
 float3f g_linear_velocity_one = float3f(-3.24160f,0.0f,0.0f);
 float3f g_linear_velocity_two = float3f(3.24160f,0.0f,0.0f);
+
 float3f g_angular_velocity_one = float3f(0.0f,8.6036e-4f,0.0f);
 float3f g_angular_velocity_two = float3f(0.0f,-8.6036e-4f,0.0f);
 

@@ -7,7 +7,7 @@
 #include <cuda.h>
 #include "mathUtil.hpp"
 
-enum class ParticleType { IRON, SILICA};
+enum class ParticleType { IRON, SILICA };
 
 class Particle{
 public:
