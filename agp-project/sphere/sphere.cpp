@@ -1,5 +1,5 @@
 
-#include "common.hpp"
+
 #include "sphere.hpp"
 
 using namespace std;
@@ -12,7 +12,7 @@ void setCircleTable(GLfloat **sint, GLfloat **cost, const int n,
     const int size = abs(n);
 
     // Determine the angle between samples
-    const GLfloat angle = (halfCircle ? 1 : 2) * 
+    const GLfloat angle = (halfCircle ? 1 : 2) *
                           (GLfloat)M_PI / (GLfloat)((n == 0) ? 1 : n );
 
     // Allocate memory for n samples, plus duplicate of first entry at the end
@@ -28,7 +28,7 @@ void setCircleTable(GLfloat **sint, GLfloat **cost, const int n,
         (*sint)[i] = (GLfloat)sin(angle*i);
         (*cost)[i] = (GLfloat)cos(angle*i);
     }
-    
+
     if (halfCircle)
     {
         (*sint)[size] =  0.0f;  // sin PI
@@ -53,11 +53,11 @@ void generateSphere(GLfloat radius, GLint slices, GLint stacks,
     GLfloat *cost1 = NULL;
     GLfloat *sint2 = NULL;
     GLfloat *cost2 = NULL;
-    
+
     // precompute values on unit circle
     setCircleTable(&sint1, &cost1, -slices, GL_FALSE);
     setCircleTable(&sint2, &cost2,  stacks, GL_TRUE);
-    
+
     // Top
     vertices[0] = 0.f;
     vertices[1] = 0.f;
@@ -113,22 +113,22 @@ void glut::glutSolidSphere(GLfloat radius, GLint slices, GLint stacks)
     GLint    idx              = 0;
     GLushort offset           = 0;
     GLsizei  numVertIdxs      = stacks * nVertIdxsPerPart;
-    
+
     if (slices == 0 || stacks < 2)
     {
         return;
     }
-    
+
     // Allocate vertex and normal buffers
     vertices = (GLfloat *)malloc(nVert*3*sizeof(GLfloat));
     normals  = (GLfloat *)malloc(nVert*3*sizeof(GLfloat));
-    
+
     // Generate vertices and normals
     generateSphere(radius, slices, stacks, vertices, normals);
 
     // Allocate buffers for indices
     stripIdx = (GLushort *)malloc((slices+1)*2*stacks*sizeof(GLushort));
-    
+
     // Generate vertex index arrays for drawing with glDrawElements (all
     // stacks, including top / bottom, are covered with a triangle strip)
     {
@@ -142,7 +142,7 @@ void glut::glutSolidSphere(GLfloat radius, GLint slices, GLint stacks)
         stripIdx[idx+1] = 0;
         idx+=2;
 
-        // Middle stacks (strip indices are relative to first index belonging 
+        // Middle stacks (strip indices are relative to first index belonging
         // to strip, NOT relative to first vertex/normal pair in array)
         for (int i = 0; i < stacks-2; i++, idx += 2)
         {
@@ -169,28 +169,28 @@ void glut::glutSolidSphere(GLfloat radius, GLint slices, GLint stacks)
         stripIdx[idx  ] = nVert-1; // Repeat first slice's idx for closing
         stripIdx[idx+1] = offset;    // off shape
     }
-    
+
     // Generate the buffer object for the vertices
     glGenBuffers(1, &vbo_coords);
     glBindBuffer(GL_ARRAY_BUFFER, vbo_coords);
     glBufferData(GL_ARRAY_BUFFER, nVert * 3 * sizeof(vertices[0]),
                  vertices, GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-    
+
     // Generate the buffer object for the normals
 //    glGenBuffers(1, &vbo_normals);
 //    glBindBuffer(GL_ARRAY_BUFFER, vbo_normals);
 //    glBufferData(GL_ARRAY_BUFFER, nVert * 3 * sizeof(normals[0]),
 //                 normals, GL_STATIC_DRAW);
 //    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    
+
     // Generate the buffer object for the indices
     glGenBuffers(1, &ibo_elements);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo_elements);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, numVertIdxs * sizeof(stripIdx[0]),
                  stripIdx, GL_STATIC_DRAW);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-    
+
     // Render the sphere
     {
         glEnableVertexAttribArray(0);
@@ -204,7 +204,7 @@ void glut::glutSolidSphere(GLfloat radius, GLint slices, GLint stacks)
             0                   // offset of first element
         );
         glBindBuffer(GL_ARRAY_BUFFER, 0);
-        
+
 //        glEnableVertexAttribArray(attribute_v_normal);
 //        glBindBuffer(GL_ARRAY_BUFFER, vbo_normals);
 //        glVertexAttribPointer(
@@ -216,13 +216,13 @@ void glut::glutSolidSphere(GLfloat radius, GLint slices, GLint stacks)
 //            0                   // offset of first element
 //        );
 //        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        
+
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo_elements);
-        
+
         if (stacks > 1)
         {
             const size_t size = sizeof(stripIdx[0]) * nVertIdxsPerPart;
-            
+
             for (int i = 0; i < stacks; i++)
             {
                 glDrawElements(GL_TRIANGLE_STRIP, nVertIdxsPerPart,
@@ -234,19 +234,19 @@ void glut::glutSolidSphere(GLfloat radius, GLint slices, GLint stacks)
             glDrawElements(GL_TRIANGLE_STRIP, nVertIdxsPerPart,
                            GL_UNSIGNED_SHORT, NULL);
         }
-        
+
         // Clean existing bindings
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-        
+
         glDisableVertexAttribArray(0);
 //        glDisableVertexAttribArray(attribute_v_normal);
     }
-    
+
     // Release the allocations and buffers
     free(stripIdx);
     free(normals);
     free(vertices);
-    
+
     glDeleteBuffers(1, &vbo_coords);
 //        glDeleteBuffers(1, &vbo_normals);
     glDeleteBuffers(1, &ibo_elements);
@@ -255,14 +255,13 @@ void glut::glutSolidSphere(GLfloat radius, GLint slices, GLint stacks)
 void glut::glutWireSphere(GLfloat radius, GLint slices, GLint stacks)
 {
     GLint polygonMode = 0;
-    
+
     // Set the polygon mode
     glGetIntegerv(GL_POLYGON_MODE, &polygonMode);
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    
+
     glutSolidSphere(radius, slices, stacks);
-    
+
     // Reset the polygon mode to the old value
     glPolygonMode(GL_FRONT_AND_BACK, polygonMode);
 }
-
