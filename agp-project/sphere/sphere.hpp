@@ -1,6 +1,8 @@
 #ifndef _AGP_SPHERE_H
 #define _AGP_SPHERE_H
 
+#include "common.hpp"
+
 namespace agp
 {
     namespace glut
@@ -16,4 +18,3 @@ namespace agp
 }
 
 #endif
-
