@@ -11,9 +11,9 @@
 #include <numeric>
 #include <stdlib.h>
 #include <cmath>
-#include "mathUtil.hpp"
+#include "device.hpp"
 
- unsigned int NUM_PARTICLES 	= 320;							        // total no. of particles
+ unsigned int NUM_PARTICLES 	= 32;							        // total no. of particles
 
  /**
  * Some constant mathematical variables

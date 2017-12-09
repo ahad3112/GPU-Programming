@@ -2,7 +2,6 @@
 #include <string>
 #include "common.hpp"
 #include "simulator.hpp"
-#include "particle.hpp"
 #include "device.hpp"
 
 enum class CollidorEnum { ONE, TWO };
@@ -24,9 +23,13 @@ void nbody::startSimulation(){
 
   // Initialize particles list
   init(h_particles);
+
   printParticles(h_particles);
+
   // Call cuda for initialization and execution of the kernel
   startComputation(h_particles,NUM_PARTICLES);
+
+  //printParticles(h_particles);
 
   // Release host memory
   releaseHostMemory(h_particles);
