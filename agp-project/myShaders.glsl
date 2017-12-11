@@ -12,8 +12,10 @@
 
 #Shader Fragment
 #version 330 core
-  out vec4 FragColor;
+  uniform vec4 fragmentColor=vec4(0.0f,1.0f,0.0f,0.5);
   void main()
   {
-      FragColor = vec4(0.121568627f, 0.501960784f, 0.0f, 0.2f);
+
+    gl_FragColor = fragmentColor;
+
   }

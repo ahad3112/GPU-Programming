@@ -62,9 +62,6 @@ float g_radius_earth  = 6371;
 float g_radius_core_fe;
 
 
-
-
-
 //For binding CUDA to OpenGL
 Window                  win;
 GLXContext              glc;
@@ -105,16 +102,17 @@ glm::mat4 model, view, projection;
 GLuint g_default_vao = 0;
 unsigned int shaderProgram;
 Particle* particles;
+Particle* particles2;
 
 // variable related to user interaction
 float thetaZ = 0;
-float circleRadius = 5.0f;
+float circleRadius = 90000.0f;
 float fov = 45.0f;
 
 
 
 float3 g_center_mass_one = float3(23925.0f,0.0f,9042.7f);
-float3 g_center_mass_two = float3(23925.0f,0.0f,9042.7f);
+float3 g_center_mass_two = float3(-23925.0f,0.0f,-9042.7f);
 float3 g_linear_velocity_one = float3(-3.2416f,0.0f,0.0f);
 float3 g_linear_velocity_two = float3(3.2416f,0.0f,0.0f);
 float3 g_angular_velocity_one = float3(0.0f,8.6036e-4f,0.0f);
@@ -243,19 +241,69 @@ Particle* generateNewParticles(){
 	for(i = 0; i< num_iron_particles; i++){
     rho = rndFloat3();
 		float3 position = randomSphere(rho);
-		//position = position + g_center_mass_one;
+		position = position + g_center_mass_one;
 		float3 velocity = computeVelocity(position, CollidorEnum::ONE);
 		particles_impone[i] = Particle(position , velocity , ParticleType::IRON);
     }
     for(; i< NUM_PARTICLES;i++){
         rho = rndFloat3();
 		float3 position = randomShell(rho);
-		//position = position + g_center_mass_one;
+    //For particle one center of mass
+    position = position + g_center_mass_one;
 		float3 velocity = computeVelocity(position, CollidorEnum::ONE);
         particles_impone[i] = Particle(position, velocity , ParticleType::SILICA);
     }
 	return particles_impone;
 }
+
+
+
+//This method is the same as above for the second particle
+
+Particle* generateNewParticles2(){
+	// malloc should be replaced for page-locked memory
+	//Particle* particles = (Particle*)malloc(sizeof(Particle) * NUM_PARTICLES); // non-pinned memory
+
+    /**
+     * Compute the radiue of the Fe core and Si Shell
+     * Known factors
+     * 1. Fe core composes of 30% and the shell constitutes the rest
+     * 2. Radius of earth
+     * */
+
+    g_radius_core_fe = g_radius_earth * std::cbrt(0.3);
+
+	//Particle* particles_impone;
+	// Particle* particles_imptwo;
+	// page-locked (pinned) memory
+	//CUDA_CHECK_RETURN(cudaHostAlloc((void**)&particles, NUM_PARTICLES * sizeof(Particle) , cudaHostAllocDefault));
+
+  Particle* particles_imptwo = (Particle*)malloc(sizeof(Particle) * NUM_PARTICLES);
+
+    int num_iron_particles = (int) (PERCENT_IRON * NUM_PARTICLES);
+    int num_silica_particles = NUM_PARTICLES - num_iron_particles;
+
+    // initialize iron particle positions
+    float3 rho;
+    int i=0;
+	for(i = 0; i< num_iron_particles; i++){
+    rho = rndFloat3();
+		float3 position = randomSphere(rho);
+		position = position + g_center_mass_two;
+		float3 velocity = computeVelocity(position, CollidorEnum::TWO);
+		particles_imptwo[i] = Particle(position , velocity , ParticleType::IRON);
+    }
+    for(; i< NUM_PARTICLES;i++){
+        rho = rndFloat3();
+		float3 position = randomShell(rho);
+    //For particle two center of mass
+    position = position + g_center_mass_two;
+		float3 velocity = computeVelocity(position, CollidorEnum::TWO);
+        particles_imptwo[i] = Particle(position, velocity , ParticleType::SILICA);
+    }
+	return particles_imptwo;
+}
+
 
 // this method initialize and return a list of particles
 Particle* generateParticles(int n){
@@ -277,7 +325,7 @@ void init()
     glBindVertexArray(g_default_vao);
 
     // Set the background color (RGBA)
-    glClearColor(0.0f, 1.0f, 0.0f, 0.0f);
+    //glClearColor(0.0f, 1.0f, 0.0f, 0.0f);
 
     // Your OpenGL settings, such as alpha, depth and others, should be
     // defined here! For the assignment, we only ask you to enable the
@@ -286,7 +334,7 @@ void init()
     glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     // initial view and projection matrices
-    view  = glm::lookAt(glm::vec3(0.0f, 0.0f, 35000.0f),
+    view  = glm::lookAt(glm::vec3(0.0f, 0.0f, 60000.0f),
       glm::vec3(0.0f, 0.0f, 0.0f),
       glm::vec3(0.0f, 1.0f, 0.0f));
     projection = glm::perspective(glm::radians(fov), (float)WIDTH / (float)HEIGHT, 1000.0f, 100000.0f);
@@ -303,6 +351,7 @@ void release()
     //cuGLRegisterBufferObject( bufferID );
     // Rele the memory allocated for particle list
     free(particles);
+    free(particles2);
 }
 
 void display(GLFWwindow *window)
@@ -317,35 +366,52 @@ void display(GLFWwindow *window)
 
         // need to activate the shader before any calls to glUniform
         glUseProgram(shaderProgram);
-
+            // Identity matrix
+        //printf("%f %f %f\n", particles[i].position.x, particles[i].position.y, particles[i].position.z);
+        //model = glm::translate(model, glm::vec3(100000.0f,100.0f,100.0f));
 
         for(int i = 0; i< NUM_PARTICLES;i++){
-          // create transformation matrices
-          model = glm::mat4(1.0f);    // Identity matrix
-          //printf("%f %f %f\n", particles[i].position.x, particles[i].position.y, particles[i].position.z);
-          model = glm::translate(model, particles[i].position);
+          // create transformation matrices+glm::translate(model, particles2[i].position)
+          // model = glm::translate(model, particles2[i].position);
           //model = glm::translate(model, glm::vec3(0.0f,0.0f,0.0f));
           // retrieve the matrix uniform locations
+          model = glm::mat4(1.0f);
+          model = glm::translate(model,particles[i].position);
+
           unsigned int modelLoc = glGetUniformLocation(shaderProgram, "model");
           unsigned int viewLoc  = glGetUniformLocation(shaderProgram, "view");
           unsigned int projectionLoc = glGetUniformLocation(shaderProgram, "projection");
+
+          unsigned int FragColor = glGetUniformLocation(shaderProgram, "fragmentColor");
           // pass them to the shaders
           glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
           glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
           glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
 
+          if(particles[i].pType ==ParticleType::IRON)
+          {
+
+              glUniform4f(FragColor,1.0f,0.0f,0.0f,0.2f);
+
+          }
+          else if(particles[i].pType ==ParticleType::SILICA)
+          {
+              glUniform4f(FragColor,0.0f,0.0f,1.0f,0.2f);
+
+
+          }
 
 
           // draw our transformed particle as a sphere
           glutSolidSphere(80.8f,10,10);
           //glutWireSphere(particles[i].radius,9,9);
 
-
-
-
           // // update position randomly
           // particles[i].velocity = particles[i].velocity + glm::vec3(0.0f,-dt * g, 0.0f);
           particles[i].position = particles[i].position + particles[i].velocity * 2.0f;
+          //particles2[i].position = particles2[i].position + particles2[i].velocity * 4.0f;
+
+
           // //glm::vec3 perturbation = glm::vec3(getRND(MIN,MAX),getRND(MIN,MAX),getRND(MIN,MAX)) * SCALE;
           // //particles[i].position = particles[i].position + perturbation;
           //
@@ -372,6 +438,83 @@ void display(GLFWwindow *window)
           //particles[i].position.y = glm::min(glm::max(particles[i].position.y,MIN),MAX);
           //particles[i].position.z = glm::min(glm::max(particles[i].position.z,MIN),MAX);
       }
+
+      //For the second particle rendering
+      for(int i = 0; i< NUM_PARTICLES;i++){
+        // create transformation matrices+glm::translate(model, particles2[i].position)
+        // model = glm::translate(model, particles2[i].position);
+        //model = glm::translate(model, glm::vec3(0.0f,0.0f,0.0f));
+        // retrieve the matrix uniform locations
+        model = glm::mat4(1.0f);
+        model = glm::translate(model,particles2[i].position);
+
+
+        unsigned int modelLoc = glGetUniformLocation(shaderProgram, "model");
+        unsigned int viewLoc  = glGetUniformLocation(shaderProgram, "view");
+        unsigned int projectionLoc = glGetUniformLocation(shaderProgram, "projection");
+
+        unsigned int FragColor = glGetUniformLocation(shaderProgram, "fragmentColor");
+        // pass them to the shaders
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+        glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+        glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
+
+        if(particles2[i].pType ==ParticleType::IRON)
+        {
+
+            glUniform4f(FragColor,1.0f,0.0f,0.0f,0.2f);
+
+        }
+        else if(particles2[i].pType ==ParticleType::SILICA)
+        {
+            glUniform4f(FragColor,0.0f,0.0f,1.0f,0.2f);
+
+
+        }
+
+
+        // draw our transformed particle as a sphere
+        glutSolidSphere(80.8f,10,10);
+        //glutWireSphere(particles[i].radius,9,9);
+
+
+
+
+        // // update position randomly
+        // particles[i].velocity = particles[i].velocity + glm::vec3(0.0f,-dt * g, 0.0f);
+        //particles[i].position = particles[i].position + particles[i].velocity * 2.0f;
+        particles2[i].position = particles2[i].position + particles2[i].velocity * 4.0f;
+
+
+        // //glm::vec3 perturbation = glm::vec3(getRND(MIN,MAX),getRND(MIN,MAX),getRND(MIN,MAX)) * SCALE;
+        // //particles[i].position = particles[i].position + perturbation;
+        //
+        // // Handling boundary condition
+        // bool hitBoundary = false;
+        // if(particles[i].position.x + particles[i].radius <= MIN || particles[i].position.x + particles[i].radius>= MAX){
+        //   particles[i].position.x = glm::min(glm::max(particles[i].position.x,MIN),MAX);
+        //   hitBoundary = true;
+        // }
+        // if(particles[i].position.y + particles[i].radius<= MIN || particles[i].position.y + particles[i].radius>= MAX){
+        //   particles[i].position.y = glm::min(glm::max(particles[i].position.y,MIN),MAX);
+        //   hitBoundary = true;
+        // }
+        // if(particles[i].position.z + particles[i].radius <= MIN || particles[i].position.z + particles[i].radius >= MAX){
+        //   particles[i].position.z = glm::min(glm::max(particles[i].position.z,MIN),MAX);
+        //   hitBoundary = true;
+        // }
+        //
+        // if(hitBoundary){
+        //   particles[i].velocity *= -1.0f;
+        // }
+
+        //particles[i].position.x = glm::min(glm::max(particles[i].position.x,MIN),MAX);
+        //particles[i].position.y = glm::min(glm::max(particles[i].position.y,MIN),MAX);
+        //particles[i].position.z = glm::min(glm::max(particles[i].position.z,MIN),MAX);
+    }
+
+
+
       // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
       // -------------------------------------------------------------------------------
       glfwSwapBuffers(window);
@@ -384,21 +527,21 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
   if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS){
     glfwSetWindowShouldClose(window, true);
   } else if(glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS){
-    thetaZ -= 10.0f;
+    thetaZ -= 1.0f;
     view = glm::lookAt(glm::vec3(circleRadius*sin(glm::radians(thetaZ)), 0.0f, circleRadius*cos(glm::radians(thetaZ))),
               glm::vec3(0.0f, 0.0f, 0.0f),
               glm::vec3(0.0f, 1.0f, 0.0f));
   } else if(glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS){
-    thetaZ += 10.0f;
+    thetaZ += 1.0f;
     view = glm::lookAt(glm::vec3(circleRadius*sin(glm::radians(thetaZ)), 0.0f, circleRadius*cos(glm::radians(thetaZ))),
               glm::vec3(0.0f, 0.0f, 0.0f),
               glm::vec3(0.0f, 1.0f, 0.0f));
   }else if(glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS){
-    fov -= 5.0f;
-    projection = glm::perspective(glm::radians(fov), (float)WIDTH / (float)HEIGHT, 0.1f, 100.0f);
+    fov -= 1.0f;
+    projection = glm::perspective(glm::radians(fov), (float)WIDTH / (float)HEIGHT, 1000.0f, 100000.0f);
   } else if(glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS){
-    fov += 5.0f;
-    projection = glm::perspective(glm::radians(fov), (float)WIDTH / (float)HEIGHT, 0.1f, 100.0f);
+    fov += 1.0f;
+    projection = glm::perspective(glm::radians(fov), (float)WIDTH / (float)HEIGHT, 1000.0f, 100000.0f);
   }
 }
 
@@ -407,6 +550,8 @@ int main()
 {
 
   GLFWwindow* window = utilities::createWindow("My Window...");
+
+  glfwSetKeyCallback(window,key_callback);
 
   // Create the shader program
 //unsigned int shaderProgram = util::createShaderProgram("/Users/maaahad/Documents/OpenGL_Projects/OpengGL_MVP/OpengGL_MVP/myShaders.glsl");
@@ -419,6 +564,7 @@ util::displayOpenGLInfo();
 
 // generate particles Array
 particles = generateNewParticles();
+particles2 = generateNewParticles2();
 
 // Initialize 3d view
 init();
