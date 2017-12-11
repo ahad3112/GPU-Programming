@@ -13,7 +13,7 @@
 #include <cmath>
 #include "device.hpp"
 
- unsigned int NUM_PARTICLES 	= 32;							        // total no. of particles
+ unsigned int NUM_PARTICLES 	= 10000;							        // total no. of particles
 
  /**
  * Some constant mathematical variables
@@ -46,7 +46,7 @@ float g_radius_earth  = 6371;
 float g_radius_core_fe;
 
 
-
+/*
 float3f g_center_mass_one = float3f(23925.0f,0.0f,9042.7f);
 float3f g_center_mass_two = float3f(-23925.0f,0.0f,-9042.7f);
 
@@ -55,6 +55,14 @@ float3f g_linear_velocity_two = float3f(3.24160f,0.0f,0.0f);
 
 float3f g_angular_velocity_one = float3f(0.0f,8.6036e-4f,0.0f);
 float3f g_angular_velocity_two = float3f(0.0f,-8.6036e-4f,0.0f);
+*/
+float3f g_center_mass_one = float3f(23925000.0f,0.0f,9042700.0f);
+float3f g_center_mass_two = float3f(-23925000.0f,0.0f,-9042700.0f);
 
+float3f g_linear_velocity_one = float3f(-3241.60f,0.0f,0.0f);
+float3f g_linear_velocity_two = float3f(3241.60f,0.0f,0.0f);
+
+float3f g_angular_velocity_one = float3f(0.0f,8.6036e-4f,0.0f);
+float3f g_angular_velocity_two = float3f(0.0f,-8.6036e-4f,0.0f);
 
 #endif /* COMMON_HPP_ */

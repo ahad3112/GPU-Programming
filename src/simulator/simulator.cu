@@ -24,7 +24,7 @@ void nbody::startSimulation(){
   // Initialize particles list
   init(h_particles);
 
-  printParticles(h_particles);
+  //printParticles(h_particles);
 
   // Call cuda for initialization and execution of the kernel
   startComputation(h_particles,NUM_PARTICLES);
@@ -160,7 +160,7 @@ void init(Particle* h_particles){
 
     int per_collidor_particles = (int) NUM_PARTICLES / 2;
     int num_iron_particles = (int) (PERCENT_IRON * per_collidor_particles);
-    int num_silica_particles = per_collidor_particles - num_iron_particles;
+    // int num_silica_particles = per_collidor_particles - num_iron_particles;
 
     // adding first collidor one
     float3f rho;

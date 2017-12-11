@@ -13,7 +13,7 @@ unsigned int BLOCK_SIZE	 = 32;								          // no. of threads in a block
  *	(Supplementary Table 1| Parameters for Planar single-tailed collision)
  */
 
- unsigned int NUM_IT	 = 1;									              // total number of iteration
+ unsigned int NUM_IT	 = 1500;									              // total number of iteration
 
 /**
  *	Global variables
@@ -32,6 +32,7 @@ __device__ float g_reduce_k_fe	= 0.02f;					      // persent of reduction of the
 __device__ float g_sh_depth_si = 0.001f; 					      // shell depth percent of silica
 __device__ float g_sh_depth_fe = 0.002f;					      // shell depth percent of iron
 __device__ float g_epsilon		= 47097.5f;					      // epsilon to avoid singularity
+__device__ float g_epsilon2		= 47097.5f * 47097.5f;		// square of epsilon to avoid singularity
 __device__ float g_time_step	= 5.8117f;					      // time step
 
 

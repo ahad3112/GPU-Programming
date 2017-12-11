@@ -21,4 +21,4 @@ run:
 setup:
 	module load gcc/4.9.2 cuda/8.0
 clean:
-	rm *.out *.o
+	rm *.out *.o *.txt
