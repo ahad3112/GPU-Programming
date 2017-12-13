@@ -116,8 +116,13 @@ __device__ float3f accumulateAccels(Particle currentParticle, float3f accel, int
   // need to consider the last tile...
   // If the N is not evenly divisible by block dim, last tile will not have full list of particle to iterate.....
   // Need to fix it here!!!!!!!!!!!!!??????????????
-	for(int i = 0; i < itLenght; i++){
+	for(int i = 0; i < blockDim.x; i++){
 		accel = interaction(currentParticle, sharedParticles[i], accel);
+
+    // accel.x = 0.00001;
+    // accel.y = 0.00001;
+    // accel.z = 0.00001;
+
 	}
 	return accel;
 }
@@ -195,7 +200,7 @@ void startComputation(Particle* h_particles, int N){
 	unsigned int sharedMemorySize = blockDim.x * sizeof(Particle);
 
 	// iteration loop
-	for(int it = 0; it < NUM_IT; it++){
+	for(int it = 0; it < IT; it++){
     // sampleKernel <<< 1, 32 >>> ();
 		// kernel for compute body force
 		computeBodyForce<<< gridDim , blockDim , sharedMemorySize , stream >>> (N,dev_particles,dev_accels);
@@ -211,7 +216,7 @@ void startComputation(Particle* h_particles, int N){
     cudaDeviceSynchronize();
 
     // write to file
-    writeToFile(N,h_particles);
+    // writeToFile(N,h_particles);
     //printf("It : %d\n",it);
 	}
 
@@ -287,12 +292,13 @@ __device__ float3f interaction(Particle currentParticle, Particle otherParticle,
   r.z /= dist;
 
   // Calculate force if dist is greater than and equal to epsilon
+  float currentMass = (currentParticle.pType == ParticleType::IRON) ? g_mass_fe : g_mass_si;
   float otherMass = (otherParticle.pType == ParticleType::IRON) ? g_mass_fe : g_mass_si;
   float scale = 0.0f;
 
   if(g_diameter <= dist){
     // Case I
-    scale = G * otherMass / dist2;
+    scale = G * currentMass * otherMass / dist2;
   } else{
     // Case II III IV
     if(currentParticle.pType == ParticleType :: IRON && otherParticle.pType == ParticleType :: IRON){
@@ -300,16 +306,16 @@ __device__ float3f interaction(Particle currentParticle, Particle otherParticle,
 
       if(dist >= g_diameter - g_diameter * g_sh_depth_fe && dist < g_diameter){
         // Case II
-        scale = G * otherMass / dist2 - g_k_fe * (g_diameter2 - dist2);
+        scale = (G * currentMass * otherMass) / dist2 - (g_k_fe * (g_diameter2 - dist2));
       } else if(dist >= g_epsilon && dist < g_diameter - g_diameter * g_sh_depth_fe){
         // Case IV
         // First checking whether the deparatin are increasing or decreasing
         bool approaching = isApproaching(r, currentParticle.velocity, otherParticle.velocity);
         if(approaching){
             //printf("dist2: %f\n",dist2);
-            scale = G * otherMass / dist2 - g_k_fe * (g_diameter2 - dist2);
+            scale = (G* currentMass  * otherMass) / dist2 - (g_k_fe * (g_diameter2 - dist2));
         } else{
-            scale = G * otherMass / dist2 - g_k_fe * g_reduce_k_fe * (g_diameter2 - dist2);
+            scale = (G * currentMass * otherMass) / dist2 - (g_k_fe * g_reduce_k_fe * (g_diameter2 - dist2));
         }
       }
 
@@ -318,15 +324,15 @@ __device__ float3f interaction(Particle currentParticle, Particle otherParticle,
 
       if(dist >= g_diameter - g_diameter * g_sh_depth_si && dist < g_diameter){
         // Case II
-        scale = G * otherMass / dist2 - g_k_si * (g_diameter2 - dist2);
+        scale = (G * currentMass * otherMass) / dist2 - (g_k_si * (g_diameter2 - dist2));
       } else if(dist >= g_epsilon && dist < g_diameter - g_diameter * g_sh_depth_si){
         // Case IV
         // First checking whether the deparatin are increasing or decreasing
         bool approaching = isApproaching(r, currentParticle.velocity, otherParticle.velocity);
         if(approaching){
-          scale = G * otherMass / dist2 - g_k_si * (g_diameter2 - dist2);
+          scale = (G * currentMass * otherMass) / dist2 - (g_k_si * (g_diameter2 - dist2));
         } else{
-          scale = G * otherMass / dist2 - g_k_si * g_reduce_k_si * (g_diameter2 - dist2);
+          scale = (G * currentMass * otherMass) / dist2 - (g_k_si * g_reduce_k_si * (g_diameter2 - dist2));
         }
       }
 
@@ -335,7 +341,8 @@ __device__ float3f interaction(Particle currentParticle, Particle otherParticle,
       // Case II does not require to check approaching test
       if(dist >= g_diameter - g_diameter * g_sh_depth_si && dist < g_diameter){
         // Case II
-        scale = G * otherMass / dist2 - 0.5f * (g_k_si + g_k_fe) * (g_diameter2 - dist2);
+        scale = (G * currentMass * otherMass)/dist2 - (0.5f * (g_k_si + g_k_fe) * (g_diameter2 - dist2));
+
       } else{
         // Case III , IV
         // First checking whether the deparatin are increasing or decreasing
@@ -343,16 +350,16 @@ __device__ float3f interaction(Particle currentParticle, Particle otherParticle,
         if(dist >= g_diameter - g_diameter * g_sh_depth_fe && dist < g_diameter - g_diameter * g_sh_depth_si){
           // Case III
           if(approaching){
-              scale = G * otherMass / dist2 - 0.5f * (g_k_si + g_k_fe) * (g_diameter2 - dist2);
+              scale = (G * currentMass * otherMass) / dist2 - ( 0.5f * (g_k_si + g_k_fe) * (g_diameter2 - dist2));
           } else{
-            scale = G * otherMass / dist2 - 0.5f * (g_k_si * g_reduce_k_si + g_k_fe) * (g_diameter2 - dist2);
+            scale = (G * currentMass * otherMass) / dist2 - (0.5f * (g_k_si * g_reduce_k_si + g_k_fe) * (g_diameter2 - dist2));
           }
         } else if (dist >= g_epsilon && dist < g_diameter - g_diameter * g_sh_depth_fe){
           // Case IV
           if(approaching){
-            scale = G * otherMass / dist2 - 0.5f * (g_k_si + g_k_fe) * (g_diameter2 - dist2);
+            scale = (G* currentMass  * otherMass) / dist2 - (0.5f * (g_k_si + g_k_fe) * (g_diameter2 - dist2));
           } else{
-            scale = G * otherMass / dist2 - 0.5f * (g_k_si * g_reduce_k_si + g_k_fe * g_reduce_k_fe) * (g_diameter2 - dist2);
+            scale = (G * currentMass * otherMass) / dist2 - (0.5f * (g_k_si * g_reduce_k_si + g_k_fe * g_reduce_k_fe) * (g_diameter2 - dist2));
           }
         }
 
@@ -361,6 +368,7 @@ __device__ float3f interaction(Particle currentParticle, Particle otherParticle,
   }
   //printf("dist : %f\n", dist);
   // update acceleration
+  scale /= currentMass;
   accel.x += r.x * scale;
   accel.y += r.y * scale;
   accel.z += r.z * scale;
