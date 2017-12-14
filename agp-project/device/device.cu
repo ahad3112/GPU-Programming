@@ -10,9 +10,25 @@ static void CheckCudaErrorAux (const char *, unsigned, const char *, cudaError_t
 #define CUDA_CHECK_RETURN(value) CheckCudaErrorAux(__FILE__,__LINE__, #value, value)
 
 /**
+* calculating the mass of hthe elements
+*/
+
+// float mass_earth = 1.503939e+25f;
+// __device__  float g_mass_si;
+// __device__ float g_mass_fe;
+//
+// void defineMass(int n){
+//   int collidor_fe_N = (int)n * .3f;
+//   int collidor_si_N = (int)n * .7f;
+//   float collodir_fe_mass = mass_earth * .3f;
+//   float collodir_si_mass = mass_earth * .7f;
+//   g_mass_fe = collodir_fe_mass / collidor_fe_N;
+//   g_mass_si = collodir_si_mass / collidor_si_N;
+// }
+/**
 * Forward method decleration
 */
-void writeToFile(int N, Particle* h_particles);
+void writeToFile(int n, Particle* h_particles);
 bool ovelapCapabled();
 __device__ float3f interaction(Particle currentParticle, Particle otherParticle, float3f accel);
 
@@ -51,9 +67,9 @@ __device__ float3f interaction(Particle currentParticle, Particle otherParticle,
 /**
 * This method allocate pinned memory for the particle initiaization in host
 */
-Particle* allocateHostMemory(int N){
+Particle* allocateHostMemory(int n){
   Particle* h_particles;
-  CUDA_CHECK_RETURN(cudaHostAlloc((void**) &h_particles, N * sizeof(Particle) , cudaHostAllocDefault));
+  CUDA_CHECK_RETURN(cudaHostAlloc((void**) &h_particles, n * sizeof(Particle) , cudaHostAllocDefault));
   std::cout<<"Allocated pinned memory for the host."<<std::endl;
   return h_particles;
 }
@@ -80,9 +96,9 @@ __global__ void sampleKernel(){
 
 
 // gpu kernel for position update
-__global__ void updatePosition(int N, Particle* particles, float3f* accels){
+__global__ void updatePosition(int n, Particle* particles, float3f* accels){
 	unsigned int gtid = blockIdx.x * blockDim.x + threadIdx.x;
-	if(gtid < N){
+	if(gtid < n){
     //printf("accels : %d : %f\n",gtid, accels[gtid].x);
 		//printf("updatePosition : %d : %f\n",idx, particles[idx].position.x);
 		// Need to add contribution from angular velocity as well
@@ -109,7 +125,7 @@ __global__ void updatePosition(int N, Particle* particles, float3f* accels){
 
 // This device method accumulate acceleration for the current particle for the
 // interaction with the particles in a tile
-__device__ float3f accumulateAccels(Particle currentParticle, float3f accel, int itLenght){
+__device__ float3f accumulateAccels(Particle currentParticle, float3f accel){
 	extern __shared__ Particle sharedParticles[];
   //printf("Device:: shared -> (%f,%f,%f)\n",sharedParticles[31].position.x,sharedParticles[31].position.y,sharedParticles[31].position.z);
 	// iterate through each particle in the current tile
@@ -118,7 +134,6 @@ __device__ float3f accumulateAccels(Particle currentParticle, float3f accel, int
   // Need to fix it here!!!!!!!!!!!!!??????????????
 	for(int i = 0; i < blockDim.x; i++){
 		accel = interaction(currentParticle, sharedParticles[i], accel);
-
     // accel.x = 0.00001;
     // accel.y = 0.00001;
     // accel.z = 0.00001;
@@ -130,17 +145,17 @@ __device__ float3f accumulateAccels(Particle currentParticle, float3f accel, int
 
 
 // This is the global kernel to initialize calculate acceleration
-__global__ void computeBodyForce(int N , Particle* particles, float3f* accels){
+__global__ void computeBodyForce(int n , Particle* particles, float3f* accels){
 	unsigned int gtid = blockIdx.x * blockDim.x + threadIdx.x;
 	// defining array for in shared memory
 	extern __shared__ Particle sharedParticles[];
-	if(gtid < N){
+	if(gtid < n){
 		// Iterate through each tile
 		int i, tile;
 		float3f accel = float3f(0.0f,0.0f,0.0f);
 		Particle currentParticle = particles[gtid];
     //printf("Device:: P %d -> (%f,%f,%f)\n",gtid,currentParticle.position.x,currentParticle.position.y,currentParticle.position.z);
-		for(i = 0,tile = 0; i < N; i += blockDim.x, tile++){
+		for(i = 0,tile = 0; i < n; i += blockDim.x, tile++){
 			// get the particle to store in shared memory
 			int idx = tile * blockDim.x + threadIdx.x;
 			sharedParticles[threadIdx.x] = particles[idx];
@@ -148,13 +163,15 @@ __global__ void computeBodyForce(int N , Particle* particles, float3f* accels){
 			__syncthreads();
 
       // calculating the lenght of the shared memory to iterate through
-      int itLenght = blockDim.x;
-      if(tile == (int) N/blockDim.x){
-        itLenght = N - tile * blockDim.x;
-      }
+
+      // int itLenght = blockDim.x;
+      // if(tile == (int) N/blockDim.x){
+      //   itLenght = N - tile * blockDim.x;
+      // }
+
       //printf("Lenght: %d\n", itLenght);
 			// update acceleration for the current particle using the current tile
-			accel = accumulateAccels(currentParticle, accel, itLenght);
+			accel = accumulateAccels(currentParticle, accel);
 			__syncthreads();
 		}
 		accels[gtid] = accel;
@@ -167,10 +184,10 @@ __global__ void computeBodyForce(int N , Particle* particles, float3f* accels){
 std::ofstream output;
 
 // This method start creating and executing the kernel
-void startComputation(Particle* h_particles, int N){
+void startComputation(Particle* h_particles, int n){
 
   // opening file
-  output.open("result.txt",std::ios_base::app);
+  //output.open("result.txt",std::ios_base::app);
 
   // checking whether the device allow us for overlap between copying and mkernel execution
   if(!ovelapCapabled()){
@@ -178,23 +195,27 @@ void startComputation(Particle* h_particles, int N){
   }
 
   printf("Simulation started in device...\n");
+
+  // calculate the mass
+  // defineMass(n / 2);
+  // printf("%f\n", g_mass_fe);
   // Allocate buffer in device
 	Particle* dev_particles;
 	float3f* dev_accels;
-	CUDA_CHECK_RETURN(cudaMalloc( (void**) &dev_particles, N * sizeof(Particle) ));
-	CUDA_CHECK_RETURN(cudaMalloc( (void**) &dev_accels, N * sizeof(float3f) ));
+	CUDA_CHECK_RETURN(cudaMalloc( (void**) &dev_particles, n * sizeof(Particle) ));
+	CUDA_CHECK_RETURN(cudaMalloc( (void**) &dev_accels, n * sizeof(float3f) ));
 
 	// initialize stream
 	cudaStream_t stream; // need to think whether to use one or two streams
 	CUDA_CHECK_RETURN(cudaStreamCreate(&stream));
 
 	// Asynchronous copying from host to device
-	CUDA_CHECK_RETURN(cudaMemcpyAsync(dev_particles, h_particles, N * sizeof(Particle),
+	CUDA_CHECK_RETURN(cudaMemcpyAsync(dev_particles, h_particles, n * sizeof(Particle),
 			cudaMemcpyHostToDevice, stream));
 
 	// define threads grid size  and block size
 	dim3 blockDim(BLOCK_SIZE);
-	dim3 gridDim((N + blockDim.x - 1) / blockDim.x);
+	dim3 gridDim((n + blockDim.x - 1) / blockDim.x);
 
   // size fo the shared memory in each thread block
 	unsigned int sharedMemorySize = blockDim.x * sizeof(Particle);
@@ -203,17 +224,17 @@ void startComputation(Particle* h_particles, int N){
 	for(int it = 0; it < IT; it++){
     // sampleKernel <<< 1, 32 >>> ();
 		// kernel for compute body force
-		computeBodyForce<<< gridDim , blockDim , sharedMemorySize , stream >>> (N,dev_particles,dev_accels);
+		computeBodyForce<<< gridDim , blockDim , sharedMemorySize , stream >>> (n,dev_particles,dev_accels);
 
 		// kernel for position update
-		updatePosition<<< gridDim , blockDim , 0 , stream >>> (N,dev_particles,dev_accels);
+		updatePosition<<< gridDim , blockDim , 0 , stream >>> (n,dev_particles,dev_accels);
 
 		// copy the position of the particles of the current step
     // Asynchronous copying from host to device
-  	CUDA_CHECK_RETURN(cudaMemcpyAsync(h_particles, dev_particles, N * sizeof(Particle),
+  	CUDA_CHECK_RETURN(cudaMemcpyAsync(h_particles, dev_particles, n * sizeof(Particle),
   			cudaMemcpyDeviceToHost, stream));
 
-    cudaDeviceSynchronize();
+    //cudaDeviceSynchronize();
 
     // write to file
     // writeToFile(N,h_particles);
@@ -229,8 +250,8 @@ void startComputation(Particle* h_particles, int N){
   printf("Simulation finished in device...\n");
 }
 
-void writeToFile(int N, Particle* h_particles){
-  for(int i = 0; i < N ; i++){
+void writeToFile(int n, Particle* h_particles){
+  for(int i = 0; i < n ; i++){
     output<<h_particles[i].position.x<<" "<<h_particles[i].position.y<<"  "
     <<h_particles[i].position.z<<std::endl;
   }
@@ -341,6 +362,7 @@ __device__ float3f interaction(Particle currentParticle, Particle otherParticle,
       // Case II does not require to check approaching test
       if(dist >= g_diameter - g_diameter * g_sh_depth_si && dist < g_diameter){
         // Case II
+          //printf("Different types of particles..cae II.\n");
         scale = (G * currentMass * otherMass)/dist2 - (0.5f * (g_k_si + g_k_fe) * (g_diameter2 - dist2));
 
       } else{
@@ -366,6 +388,7 @@ __device__ float3f interaction(Particle currentParticle, Particle otherParticle,
       }
     }
   }
+  //printf("Scale: %f\n", scale);
   //printf("dist : %f\n", dist);
   // update acceleration
   scale /= currentMass;

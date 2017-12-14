@@ -25,6 +25,7 @@ using namespace agp::glut;
 float PI = 3.1415927;
 unsigned int shaderProgram;
 Particle* particles;
+int device_N;
 
 
 
@@ -189,13 +190,15 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 
 void *callCuda(void *threadID){
   std::cout<<"Rendering thread started ... "<<std::endl;
-  startComputation(particles,N);
+  startComputation(particles,device_N);
   std::cout<<"Renered complete."<<std::endl;
   pthread_exit(NULL);
 }
 
 
+
 void render(Particle* h_particles, int n){
+  device_N = n;
   particles = h_particles;
   std::cout<<"Rendering in opengl started..."<<std::endl;
   GLFWwindow* window = utilities::createWindow("My Window...");

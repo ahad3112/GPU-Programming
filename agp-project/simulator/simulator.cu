@@ -8,6 +8,8 @@
 #include "common.hpp"
 #include "device.hpp"
 
+#define N 16384
+
 std::random_device rd;
 std::mt19937 gen(rd());
 std::uniform_real_distribution<> dis(0.0, 1.0);
@@ -20,35 +22,37 @@ using namespace glt;
 Particle* h_particles;
 enum class CollidorEnum { ONE, TWO };
 unsigned int NUM_PARTICLES 	= 100;
- const float PI = 3.1415927;                             // value of PI
-float g_radius_collidor = 25576.86545f;
+ const float PI = 3.1415927;
+ float collider_depth_percent = .0f;                          // value of PI
+float g_radius_collidor = 25576.86545f + 25576.86545f * collider_depth_percent;
+// float3f g_center_mass_one = float3f(23925.0f,0.0f,9042.70f);
+// float3f g_center_mass_two = float3f(-23925.0f,0.0f,-9042.70f);
+
 float3f g_center_mass_one = float3f(23925.0f,0.0f,9042.70f);
 float3f g_center_mass_two = float3f(-23925.0f,0.0f,-9042.70f);
 
 float3f g_linear_velocity_one = float3f(-3.24160f,0.0f,0.0f);
 float3f g_linear_velocity_two = float3f(3.24160f,0.0f,0.0f);
 
-float3f g_angular_velocity_one = float3f(0.0f,8.6036e-4f,0.0f);
-float3f g_angular_velocity_two = float3f(0.0f,-8.6036e-4f,0.0f);
+// float3f g_angular_velocity_one = float3f(0.0f,8.6036e-4f,0.0f);
+// float3f g_angular_velocity_two = float3f(0.0f,-8.6036e-4f,0.0f);
+
+// float3f g_angular_velocity_one = float3f(0.0f,8.6036e-6f,0.0f);
+// float3f g_angular_velocity_two = float3f(0.0f,-8.6036e-6f,0.0f);
+
+float3f g_angular_velocity_one = float3f(0.0f,0.0f,0.0f);
+float3f g_angular_velocity_two = float3f(0.0f,0.0f,0.0f);
+
 float PERCENT_IRON = 0.30f;                             // percentage of iron in a collidor
 //float g_radius_earth  = 6371;
 float g_radius_core_fe;
+
 /*
 * Forward method decleration
 */
 void init(Particle* h_particles);
 void printParticles(Particle* h_particles, int n);
 
-/*
-void *createGLFWwindow(void *threadID){
-std::cout<<"Window thread started ... "<<std::endl;
-window = utilities::createWindow("My Window...");
-std::cout<<"Window sh created ... "<<std::endl;
-
- std::cout<<"Created shader program"<<std::endl;
- return NULL;
-}
-*/
 // This method creates the glfw windiw and start
 void *startRendering(void *threadID){
   std::cout<<"Rendering thread started ... "<<std::endl;
@@ -72,37 +76,6 @@ void nbody::startSimulation(){
   init(h_particles);
 
   render(h_particles,N);
-  /*
-  createGLFWwindow();
-  if(window){
-    std::cout<<"Window is not null"<<std::endl;
-  }
-  */
-/*
-  pthread_t windowThread;
-  int t = pthread_create(&windowThread,NULL,createGLFWwindow,NULL);
-  pthread_join(windowThread,NULL);
-
-  if(window){
-    std::cout<<"Window is not null"<<std::endl;
-  }
-*/
-/*
-  pthread_t renderThread;
-  int t1 = pthread_create(&renderThread,NULL,startRendering,NULL);
-  // Initialize particles list
-  printParticles(h_particles, 4);
-  // Call cuda for initialization and execution of the kernel
-  startComputation(h_particles,N);
-
-
-  // Create another thread for glfw
-
-
-  printParticles(h_particles, 4);
-
-  pthread_join(renderThread,NULL);
-  */
   // Release host memory
   releaseHostMemory(h_particles);
 
@@ -211,10 +184,12 @@ float3f computeVelocity(float3f position, CollidorEnum value){
 	}
 
 	velocity = l_linear_velocity;
-	r_xz = std::sqrt(pow((position.x - l_center_mass.x),2) + pow((position.z - l_center_mass.z),2));
+
+	r_xz = std::sqrt(pow((position.x - l_center_mass.x),2) + pow((position.z - l_center_mass.z),2)); // why not y ??
 	theta = std::atan2((position.z - l_center_mass.z),(position.x - l_center_mass.x));
 	velocity.x += l_angular_velocity.y * r_xz * std::sin(theta);
-	velocity.z += - l_angular_velocity.z * r_xz * std::cos(theta);
+	velocity.z += - l_angular_velocity.y * r_xz * std::cos(theta);
+
 
 	return velocity;
 }

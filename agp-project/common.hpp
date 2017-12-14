@@ -24,7 +24,7 @@
 #define GL_SUCCESS  0
 #define WIDTH 1024
 #define HEIGHT 720
-#define N 3200
+//#define N 3200
 typedef uint8_t BYTE;
 
 

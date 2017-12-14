@@ -5,7 +5,7 @@
 /**
 * Global variables related to device execution
 */
-unsigned int BLOCK_SIZE	 = 32;								          // no. of threads in a block
+unsigned int BLOCK_SIZE	 = 64;								          // no. of threads in a block
 
 
 /**
@@ -23,8 +23,11 @@ unsigned int BLOCK_SIZE	 = 32;								          // no. of threads in a block
 __device__ float G = 6.674e-20f; 							          // Universal Gravitational constant: unit [m3⋅kg−1⋅s−2.]
 __device__ float g_diameter 	= 376.7800f;				      // diameter of an element
 __device__ float g_diameter2 	= 376.7800f * 376.7800f;	// diameter square of an element
-__device__ float g_mass_si		= 7.4161e+19f;
-__device__ float g_mass_fe		= 1.9549e+20f;
+// __device__ float g_mass_si		= 7.4161e+19f * 1000;
+// __device__ float g_mass_fe		= 1.9549e+20f * 1000;
+__device__ float g_mass_si		= (7.4161e+19f * 131072 * .7f) / 16384;
+__device__ float g_mass_fe		= (1.9549e+20f * 131072 * .3f) / 16384;
+
 __device__ float g_k_si		= 2.9114e+14f ;					      // repulsive parameter for silica
 __device__ float g_k_fe		= 5.8228e+14f;					      // repulsive parameter for iron
 __device__ float g_reduce_k_si	= 0.01f;					      // persent of reduction of the silicate repulsive force
