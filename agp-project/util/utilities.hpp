@@ -8,14 +8,16 @@
 
 #ifndef UTILITIES_CPP
 #define UTILITIES_CPP
-
+#include <glad/glad.h>
+#include <GL/gl.h>
+#include <GL/glx.h>
+#include <GLFW/glfw3.h>
 #include <iostream>
-#include "common.hpp"
 
 namespace  glt{
     namespace utilities{
         // this function creates the GLFW window
-        GLFWwindow* createWindow(const char* title);
+        GLFWwindow* createWindow(const char* title, int WIDTH, int HEIGHT);
         unsigned int createShaderProgram(const std::string filePath);
     }
 }

@@ -1,35 +1,26 @@
 #ifndef DEVICE_HPP
 #define DEVICE_HPP
+#include "modelParameters.hpp"
+#include "particle.hpp"
 
+class ComputeDevice {
+private:
+  ModelParameters* dev_modelParameters;
+  float3f* accels;
 
-class float3f{
+  // define threads grid size  and block size
+  unsigned int sharedMemorySize;
+  dim3 blockDim;
+  dim3 gridDim;
+
 public:
-  float x;
-  float y;
-  float z;
-  __host__ __device__ float3f(float x, float y, float z);
+  Particle* dev_particles;
 
-  __host__ __device__ float3f();
-
-  __host__ __device__ ~float3f();
+  ComputeDevice();
+  ComputeDevice(cudaGraphicsResource* resource,Particle* h_particles, ModelParameters modelParameters);
+  void compute();
+  void releaseMemory();
+  ~ComputeDevice();
 };
-
-enum class ParticleType { IRON, SILICA };
-
-class Particle{
-public:
-  float3f position;
-  float3f velocity;
-  ParticleType pType;
-  __host__ __device__ Particle(float3f position, float3f velocity, ParticleType pType);
-
-  __host__ __device__ ~Particle();
-};
-
-
-
-Particle* allocateHostMemory(int n);
-void releaseHostMemory(Particle* h_particles);
-void startComputation(Particle* h_particles, int n);
 
 #endif

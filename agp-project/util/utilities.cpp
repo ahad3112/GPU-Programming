@@ -35,7 +35,7 @@ static void key_callback(GLFWwindow* window, int key , int scancode, int action,
     }
 }
 
-GLFWwindow* utilities::createWindow(const char* title){
+GLFWwindow* utilities::createWindow(const char* title,int WIDTH, int HEIGHT){
     cout<<"Creating GLFW window..."<<endl;
 
 
@@ -70,7 +70,7 @@ GLFWwindow* utilities::createWindow(const char* title){
     glfwMakeContextCurrent(window);
     //------------------------------------ Set Call back -------------------------------
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-    glfwSetKeyCallback(window, key_callback);
+    //glfwSetKeyCallback(window, key_callback);
 
     //------------------------------- Load opengl function pointer -----------------------
     if(!gladLoadGL()){
@@ -147,9 +147,9 @@ unsigned int utilities::createShaderProgram(const std::string filePath){
 
     ShaderProgramSource source = parseShader(filePath);
 
-
     unsigned int vertexShader = createNcompileShader(GL_VERTEX_SHADER, source.vertexSource);
     unsigned int fragmentShader = createNcompileShader(GL_FRAGMENT_SHADER,source.fragmentSource);
+
 
     // link the shaders to the shader program
     glAttachShader(shaderProgram,vertexShader);

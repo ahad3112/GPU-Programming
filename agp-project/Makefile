@@ -1,52 +1,40 @@
-
-NVCC = /usr/local/cuda-9.1/bin/nvcc -arch=sm_30 -std=c++11
-CPP     = g++ -std=c++11 -Wall --pedantic
-INCDIR  = -I./ -I./util -I./sphere -I./modules/build/include -I./simulator -I./renderer -I./device
+# Compile and run the program
+NVCC = /usr/local/cuda-9.1/bin/nvcc -x cu -arch=sm_30 -std=c++11
+GCC = g++ -std=c++11
+INCDIR = -I./ -I./simulator -I./core -I./model -I./device -I./renderer -I./util -I./sphere -I./modules/build/include
 LIBDIR  = -L./ -L./modules/build/lib
-BINDIR  = ./bin
-OBJDIR  = $(BINDIR)/obj
-LIBS    = -lglad -lglfw3 -lGL -lEGL -lXrandr -lXext -lX11 -lrt -ldl -pthread -lcudart
-CFLAGS  = $(INCDIR) $(LIBDIR)
-SPLIB = -L/usr/local/cuda-9.1/lib64
+SPLIB = -L/pdc/vol/cuda/cuda-8.0/lib64
+LIBS    = -lglad -lglfw3 -lGL -lEGL -lXrandr -lXext -lX11 -lrt -ldl -lcudart
+FLAGS = $(INCDIR)
 
+objects = main.o simulator.o model.o modelParameters.o device.o renderer.o utilities.o particle.o float3f.o
 
-MKDIR   = mkdir -p
-
-all: setup main.out
-
-main.out: device.o utilities.o util.o renderer.o simulator.o  sphere.o
-	@$(CPP) $(CFLAGS) main.cpp -o $(BINDIR)/main.out $(OBJDIR)/*.o $(SPLIB) $(LIBS)
-
-# The following line is an example on how to compile your own clases. Use
-# the $(OBJDIR) directory to output your object files:
-#
-# example_class.o:
-#	@$(CPP) $(CFLAGS) -c example_class.cpp \
-#					  -o $(OBJDIR)/example_class.o
-#
-# Do not forget to specify example_class.o alongside the main.out label. This
-# way, we tell make that main.out depends on example_class.o, triggering the
-# build beforehand.
-device.o:
-	$(NVCC) $(CFLAGS) -c device/device.cu -o $(OBJDIR)/device.o
-
-renderer.o:
-	@$(NVCC) $(CFLAGS) -c renderer/renderer.cu -o $(OBJDIR)/renderer.o
+all: $(objects)
+	/usr/local/cuda-9.1/bin/nvcc -arch=sm_30 $(LIBDIR) $(objects) -o main.out $(LIBS)
+main.o:
+	$(NVCC) $(INCDIR) -dc main.cpp -o main.o
 simulator.o:
-	$(NVCC) $(CFLAGS) -c simulator/simulator.cu -o $(OBJDIR)/simulator.o
-sphere.o:
-	@$(CPP) $(CFLAGS) -c sphere/sphere.cpp -o $(OBJDIR)/sphere.o
-
-util.o:
-	@$(NVCC) $(CFLAGS) -c util/util.cu -o $(OBJDIR)/util.o
-
+	$(NVCC) $(INCDIR) -dc simulator/simulator.cpp -o simulator.o
+model.o:
+	$(NVCC) $(INCDIR) -dc model/model.cpp -o model.o
+modelParameters.o:
+	$(NVCC) $(INCDIR) -dc model/modelParameters.cpp -o modelParameters.o
+device.o:
+	$(NVCC) $(INCDIR) -dc device/device.cpp -o device.o
+renderer.o:
+	$(NVCC) $(INCDIR) -dc renderer/renderer.cpp -o renderer.o
 utilities.o:
-		$(NVCC) $(CFLAGS) -c util/utilities.cu -o $(OBJDIR)/utilities.o
-
+	$(NVCC) $(INCDIR) -dc util/utilities.cpp -o utilities.o
+particle.o:
+	$(NVCC) $(INCDIR) -dc core/particle.cpp -o particle.o
+float3f.o:
+	$(NVCC) $(INCDIR) -dc core/float3f.cpp -o float3f.o
+runf:
+	srun nvprof ./main.out
+run:
+	srun ./main.out
 setup:
-	@$(MKDIR) $(BINDIR) $(OBJDIR)
-
+	module load gcc/4.9.2 cuda/8.0
 clean:
-	@$(RM) -rf $(BINDIR) $(OBJDIR)
-
+	rm -f *.o *.out *.txt
 rebuild: clean all
