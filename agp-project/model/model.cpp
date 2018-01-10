@@ -3,13 +3,16 @@
 #include <string>
 #include <random>
 #include "model.hpp"
+/**
+* Implementation of model class
+*
+*/
 
 // Variables related to particle generation
 std::random_device rd;
 std::mt19937 gen(rd());
 std::uniform_real_distribution<> dis(0.0, 1.0);
 const float PI = 3.1415927;
-// Implementation of model class
 
 Model::Model() : Model(960, 1){
 
@@ -145,7 +148,7 @@ void Model::initModel(int nParticles){
   int per_collidor_particles = (int) nParticles / 2;
 
   unsigned int num_iron_particles = (unsigned int) (modelParameters.PERCENT_IRON * per_collidor_particles);
-  //unsigned int num_silica_particles = NUM_PARTICLES - num_iron_particles;
+
 
   // initialize iron particle positions
   float3f rho;
@@ -154,7 +157,7 @@ void Model::initModel(int nParticles){
   for(i = 0; i< num_iron_particles; i++){
     rho = rndFloat3();
     float3f position = randomSphere(rho, g_radius_core_fe);
-    //position = position + g_center_mass_one;
+
     position = float3f(position.x + modelParameters.g_center_mass_one.x,
                         position.y + modelParameters.g_center_mass_one.y,
                         position.z + modelParameters.g_center_mass_one.z);
@@ -164,8 +167,7 @@ void Model::initModel(int nParticles){
   for(; i< per_collidor_particles;i++){
       rho = rndFloat3();
       float3f position = randomShell(rho, g_radius_core_fe);
-      //For particle one center of mass
-      //position = position + g_center_mass_one;
+
       position = float3f(position.x + modelParameters.g_center_mass_one.x,
                           position.y + modelParameters.g_center_mass_one.y,
                           position.z + modelParameters.g_center_mass_one.z);
@@ -178,7 +180,6 @@ void Model::initModel(int nParticles){
   for(; i< per_collidor_particles + num_iron_particles; i++){
     rho = rndFloat3();
     float3f position = randomSphere(rho, g_radius_core_fe);
-    //position = position + g_center_mass_two;
     position = float3f(position.x + modelParameters.g_center_mass_two.x,
                         position.y + modelParameters.g_center_mass_two.y,
                         position.z + modelParameters.g_center_mass_two.z);
@@ -188,8 +189,7 @@ void Model::initModel(int nParticles){
   for(; i< nParticles;i++){
       rho = rndFloat3();
       float3f position = randomShell(rho, g_radius_core_fe);
-      //For particle two center of mass
-      //position = position + g_center_mass_two;
+
       position = float3f(position.x + modelParameters.g_center_mass_two.x,
                           position.y + modelParameters.g_center_mass_two.y,
                           position.z + modelParameters.g_center_mass_two.z);
@@ -206,5 +206,5 @@ void Model::releaseMemory(){
 
 
 Model::~Model(){
-  //free(h_particles);
+
 }

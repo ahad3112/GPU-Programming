@@ -3,6 +3,9 @@
 #include "modelParameters.hpp"
 #include "particle.hpp"
 
+/**
+* This class is responsible for perform computation in device. Ex: define thread grid, calling kernel
+*/
 class ComputeDevice {
 private:
   ModelParameters* dev_modelParameters;
@@ -17,7 +20,7 @@ public:
   Particle* dev_particles;
 
   ComputeDevice();
-  ComputeDevice(cudaGraphicsResource* resource,Particle* h_particles, ModelParameters modelParameters);
+  ComputeDevice(cudaGraphicsResource* resource,Particle* h_particles, ModelParameters modelParameters, const int BLOCK_SIZE);
   void compute();
   void releaseMemory();
   ~ComputeDevice();

@@ -1,7 +1,9 @@
 #ifndef PARTICLE_HPP
 #define PARTICLE_HPP
 #include "float3f.hpp"
-
+/*
+* Definition of Particle that represent element in the simulation
+*/
   enum class ParticleType { IRON, SILICA };
   class Particle{
     public:

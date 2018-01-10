@@ -1,12 +1,13 @@
 #include <iostream>
 #include "device.hpp"
 
-#define BLOCK_SIZE 32
 // Cuda error check
 static void CheckCudaErrorAux (const char *, unsigned, const char *, cudaError_t);
 #define CUDA_CHECK_RETURN(value) CheckCudaErrorAux(__FILE__,__LINE__, #value, value)
 
-
+/**
+* Implementation of ComputeDevice class
+*/
 
 /**
 * Forward method decleration
@@ -14,11 +15,18 @@ static void CheckCudaErrorAux (const char *, unsigned, const char *, cudaError_t
 __device__ float3f interaction(Particle currentParticle, Particle otherParticle, ModelParameters* modelParameters, float3f accel);
 
 
-
+/**
+* Constructor
+*/
 ComputeDevice::ComputeDevice(){
 
 }
-ComputeDevice::ComputeDevice(cudaGraphicsResource* resource, Particle* h_particles, ModelParameters modelParameters){
+
+/**
+* Constructor
+*/
+
+ComputeDevice::ComputeDevice(cudaGraphicsResource* resource, Particle* h_particles, ModelParameters modelParameters, const int BLOCK_SIZE){
   // mapped the shared resource and ask the cuda runtime for a pointer to the mapped resource
   size_t size;
   CUDA_CHECK_RETURN(cudaGraphicsMapResources(1,&resource,NULL));
@@ -28,13 +36,11 @@ ComputeDevice::ComputeDevice(cudaGraphicsResource* resource, Particle* h_particl
   // std::cout<<size<<std::endl;
   // std::cout<<modelParameters.nParticles * sizeof(Particle)<<std::endl;
 
-  // allocate memory in the device
-  //CUDA_CHECK_RETURN(cudaMalloc( (void**) &dev_particles, modelParameters.nParticles * sizeof(Particle)));
+  // allocate memory in the device for ModelParameters and acceleration buffer
   CUDA_CHECK_RETURN(cudaMalloc( (void**) &accels, modelParameters.nParticles * sizeof(float3f)));
   CUDA_CHECK_RETURN(cudaMalloc( (void**) &dev_modelParameters, 1 * sizeof(ModelParameters)));
 
-  // Copying data from host memory
-  //CUDA_CHECK_RETURN(cudaMemcpy(dev_particles, h_particles, modelParameters.nParticles * sizeof(Particle),cudaMemcpyHostToDevice));
+  // Copying ModelParameters data from host memory  to device
   CUDA_CHECK_RETURN(cudaMemcpy(dev_modelParameters, &modelParameters, 1 * sizeof(ModelParameters),cudaMemcpyHostToDevice));
 
   // Setting kernel grid and block size
@@ -51,9 +57,7 @@ __device__ float3f accumulateAccels(Particle currentParticle, ModelParameters* m
 	extern __shared__ Particle sharedParticles[];
   //printf("Device:: shared -> pos(%f,%f,%f)\n",sharedParticles[0].position.x,sharedParticles[0].position.y,sharedParticles[0].position.z);
 	// iterate through each particle in the current tile
-  // need to consider the last tile...
-  // If the N is not evenly divisible by block dim, last tile will not have full list of particle to iterate.....
-  // Need to fix it here!!!!!!!!!!!!!??????????????
+
 	for(int i = 0; i < blockDim.x; i++){
 		accel = interaction(currentParticle, sharedParticles[i],modelParameters, accel);
 	}
@@ -119,14 +123,12 @@ __global__ void updatePosition(Particle* particles, float3f* accels, ModelParame
     particles[gtid].position.z += modelParameters[0].g_time_step * (0.5f * accels[gtid].z * modelParameters[0].g_time_step +
       0.5f * ( prev_vel.z + particles[gtid].velocity.z ));
 
-		//printf("p%d: (%f,%f,%f)\n",gtid,particles[gtid].position.x,particles[gtid].position.y,particles[gtid].position.z);
-		//printf("accels %d: (%f,%f,%f)\n",gtid,accels[gtid].x,accels[gtid].y,accels[gtid].z);
 	}
 }
 
 // This method is the entry point of Kernel
 void ComputeDevice::compute(){
-  // Call the kernel
+  // Call the kernel to calculate the force action on each particle
   computeBodyForce<<< gridDim , blockDim , sharedMemorySize >>> (dev_particles,accels,dev_modelParameters);
   // kernel for position update
   updatePosition<<< gridDim , blockDim>>> (dev_particles,accels,dev_modelParameters);
@@ -272,5 +274,5 @@ static void CheckCudaErrorAux (const char *file, unsigned line, const char *stat
 }
 
 ComputeDevice::~ComputeDevice(){
-  // Release all allocated memory
+
 }

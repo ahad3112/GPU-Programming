@@ -10,8 +10,13 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+/**
+* This class is responsible for all OpenGL related stuff and display
+*
+*/
+
 class Renderer {
-private:
+public:
   // window WIDTH and HEIGHT
   int WIDTH;
   int HEIGHT;
@@ -34,8 +39,6 @@ private:
   unsigned int shaderProgram;
 
 
-
-public:
   // buffer object to be used by the opengl
   GLuint bufferObj;
   GLuint arrayObj;
@@ -46,9 +49,8 @@ public:
   Renderer(int WIDTH, int HEIGHT, int nParticles, Particle* h_particles);
   void initMVP();
   void initGL(int nParticles,Particle* h_particles);
+  void reBuffer(int nParticles, Particle* h_particles);
   void display(int nParticles,GLFWwindow *window);
-  static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
-  static void interact();
   void releaseMemory();
 };
 #endif

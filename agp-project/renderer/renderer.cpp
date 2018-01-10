@@ -1,6 +1,7 @@
 #include <iostream>
 #include <stdio.h>
 #include "utilities.hpp"
+#include "util.hpp"
 #include "renderer.hpp"
 
 #include <cuda.h>
@@ -8,17 +9,12 @@
 #include <cuda_gl_interop.h>
 
 using namespace glt;
+using namespace agp;
 
-
-void Renderer::interact(){
-}
-
-void Renderer::key_callback(GLFWwindow* window, int key, int scancode, int action, int mods){
-  if(key == GLFW_KEY_ESCAPE && action == GLFW_PRESS){
-      std::cout<<"Esc has been pressed..."<<std::endl;
-      glfwSetWindowShouldClose(window, GLFW_TRUE);
-  }
-}
+/**
+* Implementation of Renderer class
+*
+*/
 
 Renderer::Renderer(){
 }
@@ -39,16 +35,21 @@ Renderer::Renderer(int WIDTH, int HEIGHT, int nParticles, Particle* h_particles)
   glUseProgram(shaderProgram);
 
   // Set the key call back method
-  glfwSetKeyCallback(window, Renderer::key_callback);
+  //glfwSetKeyCallback(window, Renderer::key_callback);
 
-  // Call  util::displayOpenGLInfo() to display device info
-
+  // device informationSSs
+  printf("\n---- System Information Start ---- \n");
+  util::displayOpenGLInfo();
+  printf("---- System Information End ---- \n\n");
   // init opengl stuff
   initMVP();
   initGL(nParticles, h_particles);
 
 }
 
+/**
+* this method Initialize Model, View, Projection matrix
+*/
 void Renderer::initMVP(){
   // initial view and projection matrices
   model = glm::mat4(1.0f);
@@ -69,8 +70,11 @@ void Renderer::initMVP(){
 
 }
 
+/**
+* Initialize OpenGL RELATED STUFF
+*/
 void Renderer::initGL(int nParticles, Particle* h_particles){
-  // Your OpenGL settings, such as alpha, depth and others, should be
+  // OpenGL settings, such as alpha, depth and others, should be
   // defined here! For the assignment, we only ask you to enable the
   // alpha channel.
   glEnable(GL_VERTEX_PROGRAM_POINT_SIZE); // This method enable vertex size in vertex shader
@@ -94,7 +98,9 @@ void Renderer::initGL(int nParticles, Particle* h_particles){
   cudaGraphicsGLRegisterBuffer(&resource, bufferObj, cudaGraphicsMapFlagsNone);
 }
 
-
+/**
+* This method display the simulation
+*/
 void Renderer::display(int nParticles,GLFWwindow *window){
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glDrawArrays(GL_POINTS, 0,nParticles);
@@ -102,7 +108,15 @@ void Renderer::display(int nParticles,GLFWwindow *window){
   glfwPollEvents();
 }
 
-
+/**
+* This method reBuffer particles list in case of CPU only simulation
+*/
+void Renderer::reBuffer(int nParticles, Particle* h_particles){
+    glBufferData(GL_ARRAY_BUFFER, nParticles * sizeof(Particle),h_particles,GL_DYNAMIC_DRAW);
+}
+/**
+* Release resource
+*/
 void Renderer::releaseMemory(){
   glDeleteVertexArrays(1, &arrayObj);
   glfwTerminate();

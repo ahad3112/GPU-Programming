@@ -3,6 +3,11 @@
 #include "particle.hpp"
 #include "modelParameters.hpp"
 
+/**
+* This class define the Model to be simulated
+*
+*/
+
 enum class CollidorEnum { ONE, TWO };
 
 class Model {

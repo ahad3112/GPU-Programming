@@ -1,7 +1,7 @@
 
 #include "particle.hpp"
   /**
-  * Implementation of Particle's methods
+  * Implementation of Particle class
   */
   __host__ __device__ Particle::Particle(float3f position,float3f color, float3f velocity, ParticleType pType) :
   position(position), color(color), velocity(velocity), pType(pType)
