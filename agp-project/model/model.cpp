@@ -21,6 +21,13 @@ Model::Model() : Model(960, 1){
 Model::Model(int nParticles, int modelCase){
 
   char*  currentCase;
+
+  // If correct model-case is not chosen ... Model case 1  will be initialized by default
+  if(modelCase < 1 || modelCase > 3 ){
+    printf("Info: Wrong ModelCase has been provided. Initializing ModelCase 1 by default...\n");
+    modelCase = 1;
+  }
+  // Information of initialized model case
   if(modelCase == 1){
     currentCase = "Plannar single-tailed collision";
   } else if (modelCase == 2){

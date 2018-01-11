@@ -68,7 +68,11 @@ __device__ float3f accumulateAccels(Particle currentParticle, ModelParameters* m
 __global__ void computeBodyForce(Particle* particles, float3f* accels, ModelParameters* modelParameters){
 	unsigned int gtid = blockIdx.x * blockDim.x + threadIdx.x;
   //printf("N : %d, Device -> pos(%f,%f,%f)\n",modelParameters[0].nParticles,particles[0].position.x, particles[0].position.y, particles[0].position.z);
-	// defining array for in shared memory
+
+  /*****************************************************************************/
+  //                       Using shared memory                        //
+  /*****************************************************************************/
+  // defining array for in shared memory
 	extern __shared__ Particle sharedParticles[];
 	if(gtid < modelParameters[0].nParticles){
 		// Iterate through each tile
@@ -91,6 +95,19 @@ __global__ void computeBodyForce(Particle* particles, float3f* accels, ModelPara
 		accels[gtid] = accel;
 		//printf("p%d,%f %f %f\n",gtid,accels[gtid].x,accels[gtid].y,accels[gtid].z);
 	}
+
+
+  /*****************************************************************************/
+  //                        Without using shared memory                        //
+  /*****************************************************************************/
+  //
+  // if(gtid < modelParameters[0].nParticles){
+  //   float3f accel = float3f(0.0f,0.0f,0.0f);
+  //   for(int i = 0; i < modelParameters[0].nParticles; i++){
+  //     accel = interaction(particles[gtid], particles[i],modelParameters, accel);
+  //   }
+  //   accels[gtid] = accel;
+  // }
 
 }
 

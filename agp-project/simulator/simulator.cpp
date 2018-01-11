@@ -8,9 +8,9 @@
 #include "device.hpp"
 #include "renderer.hpp"
 
-#define CPU_SIM 0
-#define COPY_FROM_DEVICE 0
-#define WRITE_DATA 0
+#define CPU_SIM 0               // set 0 for simulation in CUDA, anything except 0 will perform simulation in CPU
+#define COPY_FROM_DEVICE 0        // in case we need to write the simulation data
+#define WRITE_DATA 0              // in case we need to write the simulation data
 
 #if CPU_SIM
 #include "cpuSim.hpp"
@@ -133,7 +133,8 @@ void nbody::startSimulation(const int n, const int modelCase, const int max_it, 
 
   for(; it<max_it; it++){
     //printf("Iteration : %d\n",it++);
-    // Perform computation in the device
+
+    // Perform simulation in the device
     #if !CPU_SIM
       // printf("GPU simulaiton.\n");
       computeDevice.compute();
@@ -141,6 +142,7 @@ void nbody::startSimulation(const int n, const int modelCase, const int max_it, 
     // upnmap the shared resource. This works as synchronization between the cuda and graphics portion of the appllication
     //cudaGraphicsUnmapResources(1,&renderer.resource,NULL);
 
+    // Perform simulation in CPU
     #if CPU_SIM
       // printf("CPU simulaiton.\n");
       updateEarthMoonSystemCPU(model->h_particles,&model->modelParameters);

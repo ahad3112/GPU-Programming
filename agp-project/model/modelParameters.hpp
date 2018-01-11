@@ -22,7 +22,7 @@ public:
 
   float g_epsilon		= 47.0975f;					           // epsilon to avoid singularity
   float g_epsilon2		= g_epsilon * g_epsilon;		 // square of epsilon to avoid singularity
-  float g_time_step	= 10.8117f;
+  float g_time_step	= 10.8117f;                    // time step for the time integration
 
   float PERCENT_IRON = 0.30f;
 
