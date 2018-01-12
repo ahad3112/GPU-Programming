@@ -15,7 +15,7 @@ const int WINDOW_WIDTH = 1280;
 const int WINDOW_HEIGHT = 720;
 
 // thread block size
-const int BLOCK_SIZE = 128;
+const int BLOCK_SIZE = 32;
 
 // This is the entry point of the Earth Moon System simulation
 int main(int argc, char ** argv){
